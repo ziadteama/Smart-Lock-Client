@@ -1,5 +1,6 @@
 // screens/SignUpPageScreen.jsx
 import React, { useState } from 'react';
+import CONFIG from '../utilities/Info';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 
 export default function SignUpPageScreen({ navigation }) {
@@ -10,19 +11,20 @@ export default function SignUpPageScreen({ navigation }) {
 
   const handleSignUpPage = async () => {
   try {
-    const response = await fetch('http://172.16.0.252:3000/api/auth/signup', { 
+    const response = await fetch(`${CONFIG.BASE_URL}/api/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password }),
-      // If using cookies/session for auth, add: credentials: 'include',
+      
     });
 
     const result = await response.json();
 
-    if (response.ok && result.success) {
-      Alert.alert('Signup successful');
-      navigation.navigate('Home');
-    } else {
+   if (response.ok && result.success) {
+  Alert.alert('Signup successful');r
+  navigation.navigate('WaitingApproval');
+}
+ else {
       setError(result.message || 'Signup failed');
     }
   } catch (err) {

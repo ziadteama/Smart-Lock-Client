@@ -1,7 +1,9 @@
-// screens/LoginScreen.jsx
 import React, { useState } from 'react';
+import CONFIG from '../utilities/Info';
 import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 export default function LoginScreen() {
   const navigation = useNavigation();
@@ -12,8 +14,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     try {
-   const response = await fetch('http://172.16.0.252:3000/api/auth/login', {
-
+      const response = await fetch(`${CONFIG.BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -22,13 +23,18 @@ export default function LoginScreen() {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        // ✅ show success message
         setSuccess(true);
         setError('');
-        // optionally: navigate to Home after a short delay
+
+        // ✅ Save userId, name, and role in AsyncStorage for use throughout the app
+        await AsyncStorage.setItem('userId', result.user.id);
+        await AsyncStorage.setItem('userName', result.user.name || '');
+        await AsyncStorage.setItem('userRole', result.user.role || '');
+        await AsyncStorage.setItem('jwtToken', result.token); // store the token
+
         setTimeout(() => {
-          navigation.navigate('Home');
-        }, 1000);
+          navigation.navigate('Main');
+        }, 50);
       } else {
         setSuccess(false);
         setError('Invalid email or password');
@@ -44,7 +50,6 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
 
-      {/* ✅ email Label */}
       <Text style={styles.label}>email</Text>
       <TextInput
         style={styles.input}
@@ -54,7 +59,6 @@ export default function LoginScreen() {
         autoCapitalize="none"
       />
 
-      {/* ✅ Password Label */}
       <Text style={styles.label}>Password</Text>
       <TextInput
         style={styles.input}
@@ -64,10 +68,7 @@ export default function LoginScreen() {
         secureTextEntry
       />
 
-      {/* ✅ Show error if any */}
       {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      {/* ✅ Show success if login worked */}
       {success ? <Text style={styles.success}>Login successful</Text> : null}
 
       <Button title="Log In" onPress={handleLogin} />
