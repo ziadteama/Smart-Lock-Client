@@ -1,94 +1,187 @@
 import React, { useState } from 'react';
-import CONFIG from '../utilities/Info';
-import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
+import {
+  View, Text, TextInput, TouchableOpacity, StyleSheet
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import Icon from 'react-native-vector-icons/Ionicons';
+import CONFIG from '../utilities/Info';
 
 export default function LoginScreen() {
   const navigation = useNavigation();
-  const [email, setemail] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false); 
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    setError('');
+    setSuccess(false);
+    setLoading(true);
     try {
       const response = await fetch(`${CONFIG.BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-
       const result = await response.json();
 
       if (response.ok && result.success) {
         setSuccess(true);
         setError('');
-
-        // ✅ Save userId, name, and role in AsyncStorage for use throughout the app
         await AsyncStorage.setItem('userId', result.user.id);
         await AsyncStorage.setItem('userName', result.user.name || '');
         await AsyncStorage.setItem('userRole', result.user.role || '');
-        await AsyncStorage.setItem('jwtToken', result.token); // store the token
+        await AsyncStorage.setItem('jwtToken', result.token);
 
         setTimeout(() => {
           navigation.navigate('Main');
         }, 50);
       } else {
         setSuccess(false);
-        setError('Invalid email or password');
+        setError(result.message || 'Invalid email or password');
       }
     } catch (err) {
-      console.error(err);
       setSuccess(false);
       setError('Server error');
     }
+    setLoading(false);
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+    <View style={styles.bg}>
+      <View style={styles.card}>
+        {/* Tabs */}
+        <View style={styles.tabRow}>
+          <TouchableOpacity>
+            <Text style={[styles.tabText, styles.tabActive]}>
+              <Icon name="log-in-outline" size={18} color="#55aaff" /> Sign in
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+            <Text style={styles.tabText}>
+              <Icon name="person-add-outline" size={18} color="#bbb" /> Register
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {/* Avatar */}
+        <View style={styles.avatarCircle}>
+          <Icon name="person-circle-outline" size={68} color="#d1d5db" />
+        </View>
+        {/* Inputs */}
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="#bbb"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          placeholderTextColor="#bbb"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
 
-      <Text style={styles.label}>email</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your email"
-        onChangeText={setemail}
-        value={email}
-        autoCapitalize="none"
-      />
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {success ? <Text style={styles.success}>Login successful</Text> : null}
 
-      <Text style={styles.label}>Password</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your password"
-        onChangeText={setPassword}
-        value={password}
-        secureTextEntry
-      />
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {success ? <Text style={styles.success}>Login successful</Text> : null}
-
-      <Button title="Log In" onPress={handleLogin} />
-      <View style={{ height: 20 }} />
-      <Button title="Signup" onPress={() => navigation.navigate('Signup')} />
+        <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+          <Text style={styles.buttonText}>{loading ? 'Signing in...' : 'Sign in'}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 24, textAlign: 'center' },
-  label: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#aaa',
-    borderRadius: 6,
-    padding: 12,
-    marginBottom: 16,
+  bg: {
+    flex: 1,
+    backgroundColor: '#e6e6e6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  error: { color: 'red', marginBottom: 12, textAlign: 'center' },
-  success: { color: 'green', marginBottom: 12, textAlign: 'center' },
+  card: {
+    backgroundColor: '#fff',
+    width: '90%',
+    borderRadius: 20,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 7,
+    alignItems: 'center',
+  },
+  tabRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '90%',
+    marginBottom: 16,
+    marginTop: -10,
+  },
+  tabText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#bbb',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    color: '#55aaff',
+    borderBottomColor: '#55aaff',
+  },
+  avatarCircle: {
+    marginVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  input: {
+    width: '100%',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 14,
+    fontSize: 15,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#e6e6e6',
+  },
+  button: {
+    width: '100%',
+    backgroundColor: '#35a7ff',
+    borderRadius: 8,
+    paddingVertical: 13,
+    marginTop: 8,
+    alignItems: 'center',
+    shadowColor: '#35a7ff',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.14,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 17,
+  },
+  error: {
+    color: 'red',
+    marginTop: 8,
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  success: {
+    color: 'green',
+    marginTop: 8,
+    marginBottom: 2,
+    textAlign: 'center',
+  },
 });

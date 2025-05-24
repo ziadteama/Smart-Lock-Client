@@ -1,135 +1,203 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import {
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator
+} from 'react-native';
 import CONFIG from '../utilities/Info';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function EditPasswordScreen() {
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+export default function EditPinScreen() {
+  const [oldPin, setOldPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
   const [error, setError] = useState('');
-  const [fieldError, setFieldError] = useState({
-    old: '', new: '', confirm: ''
-  });
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
-    setFieldError({ old: '', new: '', confirm: '' });
     setError('');
 
-    // Field validations
-    let valid = true;
-    if (!oldPassword) {
-      setFieldError(prev => ({ ...prev, old: 'Enter old password' }));
-      valid = false;
+    // Validation
+    if (!oldPin) {
+      setError('Enter your old PIN');
+      return;
     }
-    if (!newPassword) {
-      setFieldError(prev => ({ ...prev, new: 'Enter new password' }));
-      valid = false;
+    if (!newPin) {
+      setError('Enter new PIN');
+      return;
     }
-    if (newPassword !== confirmPassword) {
-      setFieldError(prev => ({ ...prev, confirm: 'Passwords do not match' }));
-      valid = false;
+    if (newPin.length < 4) {
+      setError('PIN must be at least 4 digits');
+      return;
     }
-    if (!valid) return;
-
-    // Get userId for authenticated change
-    const userId = await AsyncStorage.getItem('userId');
-    if (!userId) {
-      setError('User not authenticated. Please log in again.');
+    if (newPin !== confirmPin) {
+      setError('New PINs do not match');
+      return;
+    }
+    if (oldPin === newPin) {
+      setError('New PIN must be different from old PIN');
       return;
     }
 
     setLoading(true);
+
     try {
-      // First, verify the old password
-      const verifyRes = await fetch(`${CONFIG.BASE_URL}/api/auth/verify-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, password: oldPassword }),
-      });
-      const verifyResult = await verifyRes.json();
-      if (!verifyRes.ok || !verifyResult.success) {
-        setFieldError(prev => ({ ...prev, old: 'Old password is incorrect' }));
+      const token = await AsyncStorage.getItem('jwtToken');
+      if (!token) {
+        setError('Not authenticated. Please login again.');
         setLoading(false);
         return;
       }
 
-      // Now, update the password
-      const updateRes = await fetch(`${CONFIG.BASE_URL}/api/auth/update-password`, {
+      const response = await fetch(`${CONFIG.BASE_URL}/api/pin/update`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, newPassword }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ oldPin, newPin }),
       });
-      const updateResult = await updateRes.json();
-      if (updateRes.ok && updateResult.success) {
-        Alert.alert('Success', 'Password updated successfully!');
-        setOldPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
+
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        setError('Invalid server response. Response: ' + text.slice(0, 100));
+        setLoading(false);
+        return;
+      }
+
+      if (response.ok && data.success) {
+        Alert.alert('Success', 'Global PIN updated successfully!');
+        setOldPin('');
+        setNewPin('');
+        setConfirmPin('');
+        setError('');
       } else {
-        setError(updateResult.message || 'Failed to update password');
+        setError(data.message || 'Failed to update PIN');
       }
     } catch (err) {
       setError('Server error');
-      console.error(err);
     }
     setLoading(false);
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Edit Door Password</Text>
-      <Text style={styles.label}>Old Password</Text>
-      <TextInput
-        style={styles.input}
-        value={oldPassword}
-        onChangeText={setOldPassword}
-        secureTextEntry
-        placeholder="Enter old password"
-        keyboardType="numeric"
-      />
-      {fieldError.old ? <Text style={styles.error}>{fieldError.old}</Text> : null}
-
-      <Text style={styles.label}>New Password</Text>
-      <TextInput
-        style={styles.input}
-        value={newPassword}
-        onChangeText={setNewPassword}
-        secureTextEntry
-        placeholder="Enter new password"
-        keyboardType="numeric"
-      />
-      {fieldError.new ? <Text style={styles.error}>{fieldError.new}</Text> : null}
-
-      <Text style={styles.label}>Confirm New Password</Text>
-      <TextInput
-        style={styles.input}
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-        placeholder="Re-enter new password"
-        keyboardType="numeric"
-      />
-      {fieldError.confirm ? <Text style={styles.error}>{fieldError.confirm}</Text> : null}
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <Button title={loading ? 'Saving...' : 'Save'} onPress={handleSave} disabled={loading} />
+    <View style={styles.bg}>
+      <View style={styles.card}>
+        <Ionicons name="keypad-outline" size={38} color="#7cc6fe" style={{ alignSelf: 'center', marginBottom: 6 }} />
+        <Text style={styles.title}>Edit Global PIN</Text>
+        <TextInput
+          style={styles.input}
+          value={oldPin}
+          onChangeText={setOldPin}
+          secureTextEntry
+          placeholder="Old PIN"
+          placeholderTextColor="#bbb"
+          keyboardType="numeric"
+          maxLength={10}
+        />
+        <TextInput
+          style={styles.input}
+          value={newPin}
+          onChangeText={setNewPin}
+          secureTextEntry
+          placeholder="New PIN"
+          placeholderTextColor="#bbb"
+          keyboardType="numeric"
+          maxLength={10}
+        />
+        <TextInput
+          style={styles.input}
+          value={confirmPin}
+          onChangeText={setConfirmPin}
+          secureTextEntry
+          placeholder="Confirm New PIN"
+          placeholderTextColor="#bbb"
+          keyboardType="numeric"
+          maxLength={10}
+        />
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <TouchableOpacity
+          style={[styles.button, loading ? styles.buttonDisabled : null]}
+          onPress={handleSave}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#123866" />
+          ) : (
+            <Text style={styles.buttonText}>Save</Text>
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 24, textAlign: 'center' },
-  label: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#aaa',
-    borderRadius: 6,
-    padding: 12,
-    marginBottom: 10,
+  bg: {
+    flex: 1,
+    backgroundColor: '#1b2e4e',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
-  error: { color: 'red', marginBottom: 8, textAlign: 'center' },
+  card: {
+    backgroundColor: '#255083',
+    width: '96%',
+    borderRadius: 22,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.10,
+    shadowRadius: 18,
+    elevation: 8,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#e1ecfa',
+    marginBottom: 18,
+    letterSpacing: 0.8,
+  },
+  input: {
+    width: '100%',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 15,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#d7e3f3',
+  },
+  button: {
+    width: '100%',
+    backgroundColor: '#7cc6fe',
+    borderRadius: 10,
+    paddingVertical: 13,
+    alignItems: 'center',
+    marginTop: 10,
+    shadowColor: '#7cc6fe',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.16,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  buttonDisabled: {
+    backgroundColor: '#b8d8f6',
+  },
+  buttonText: {
+    color: '#123866',
+    fontWeight: '700',
+    fontSize: 17,
+    letterSpacing: 0.2,
+  },
+  error: {
+    color: 'orange',
+    marginBottom: 6,
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
 });

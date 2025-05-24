@@ -1,5 +1,5 @@
 const CONFIG = {
-  BASE_URL: 'http://172.16.0.100:3000',
+  BASE_URL: 'http://192.168.146.51:3000',
 
 };
 

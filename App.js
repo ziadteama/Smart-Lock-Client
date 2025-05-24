@@ -5,7 +5,7 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import CustomDrawer from './Componenets/CustomDrawer';
 import HomeScreen from './screens/HomeScreen';
-import LogScreen from './screens/LogScreen';
+import AccessLogsScreen from './screens/AccessLogsScreen';
 import EditPasswordScreen from './screens/EditPasswordScreen';
 import RequestAccountScreen from './screens/RequestAccountScreen';
 import UserDataScreen from './screens/UserDataScreen';
@@ -25,7 +25,7 @@ function DrawerLayout({ isAdmin }) {
       screenOptions={{ headerShown: true }}
     >
       <Drawer.Screen name="Home" component={HomeScreen} />
-      <Drawer.Screen name="Logs" component={LogScreen} />
+      <Drawer.Screen name="AccessLogsScreen" component={AccessLogsScreen} />
       {isAdmin && <Drawer.Screen name="Edit Password" component={EditPasswordScreen} />}
       {isAdmin && <Drawer.Screen name="Request Account" component={RequestAccountScreen} />}
       <Drawer.Screen name="User Data" component={UserDataScreen} />
@@ -35,14 +35,14 @@ function DrawerLayout({ isAdmin }) {
 }
 
 export default function App() {
-  const isAdmin = true; // TODO: replace with actual logic
-
+  const isAdmin = true;
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Signup" component={SignUpPageScreen} />
         <Stack.Screen name="WaitingApproval" component={WaitingApprovalScreen} />
+        {}
         <Stack.Screen name="Main" options={{ headerShown: false }}>
           {() => <DrawerLayout isAdmin={isAdmin} />}
         </Stack.Screen>
